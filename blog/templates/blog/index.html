@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Chatbot App</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'blog/style.css' %}" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body class="light-theme">
+    
+    <button id="clearChatBtn">Clear Chat</button>
+
+    <header class="header">
+        <h1>Chatbot App 🤖</h1>
+        <label class="theme-toggle">
+            <input type="checkbox" id="themeToggle" />
+            <span class="slider"></span>
+        </label>
+    </header>
+
+    <main>
+        <section id="chatContainer"></section>
+        <p id="typingIndicator" class="typing-indicator">🤖 Bot is typing...</p>
+
+        <section id="inputArea">
+            <input id="textInput" type="text" placeholder="Type your message..." />
+            <button id="buttonInput">Send</button>
+        </section>
+    </main>
+
+    <audio id="botSound" src="{% static 'blog/ding.mp3' %}" preload="auto"></audio>
+
+    <script>
+        // Generate current timestamp in hh:mm AM/PM format
+        function getCurrentTimestamp() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const suffix = hours >= 12 ? "PM" : "AM";
+            const formattedTime = `${((hours + 11) % 12 + 1)}:${minutes.toString().padStart(2, '0')} ${suffix}`;
+            return formattedTime;
+        }
+
+        // Append a message (bot or user) to the chat container
+        function appendMessage(sender, message) {
+            const timestamp = getCurrentTimestamp();
+            let messageHTML = '';
+
+            if (sender === "bot") {
+                messageHTML = `
+                    <div class="botMessage">
+                        <img src="{% static 'blog/bot.png' %}" class="avatar" alt="Bot Avatar" />
+                        <div class="msgContent">
+                            <span>${marked.parse(message)}</span>
+                            <div class="timestamp">${timestamp}</div>
+                        </div>
+                    </div>`;
+            } else {
+                messageHTML = `
+                    <div class="userMessage">
+                        <div class="msgContent">
+                            <span>${message}</span>
+                            <div class="timestamp">${timestamp}</div>
+                        </div>
+                    </div>`;
+            }
+
+            $('#chatContainer').append(messageHTML);
+            $('#chatContainer').scrollTop($('#chatContainer')[0].scrollHeight);
+        }
+
+        // Save chat history to local storage
+        function saveChat() {
+            localStorage.setItem('chatHistory', $('#chatContainer').html());
+        }
+
+        // Load chat history or start new conversation
+        function loadChat() {
+            const history = localStorage.getItem('chatHistory');
+            if (history) {
+                $('#chatContainer').html(history);
+            } else {
+                appendMessage("bot", "Hello! I'm your assistant 🤖<br>Ask me anything...");
+                saveChat();
+            }
+        }
+
+        // Clear chat and reset
+        function clearChat() {
+            localStorage.removeItem('chatHistory');
+            $('#chatContainer').empty();
+            appendMessage("bot", "Chat cleared. How can I assist you?");
+            saveChat();
+        }
+
+        // Initialize events on page ready
+        $(document).ready(function () {
+            loadChat();
+
+            $('#buttonInput').click(function () {
+                const userText = $('#textInput').val().trim();
+                if (!userText) return;
+
+                appendMessage("user", userText);
+                $('#textInput').val("");
+                saveChat();
+
+                $('#typingIndicator').show();
+
+                $.get('/blog/getResponse', { userMessage: userText })
+                    .done(function (data) {
+                        $('#typingIndicator').hide();
+                        appendMessage("bot", data);
+                        document.getElementById("botSound").play();
+                        saveChat();
+                    });
+            });
+
+            // Trigger send on Enter key
+            $('#textInput').keypress(function (e) {
+                if (e.which === 13) $('#buttonInput').click();
+            });
+
+            // Toggle theme
+            $('#themeToggle').change(function () {
+                $('body').toggleClass('light-theme dark-theme');
+            });
+
+            // Clear chat event
+            $('#clearChatBtn').click(clearChat);
+        });
+    </script>
+</body>
+</html>
