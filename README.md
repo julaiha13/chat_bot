@@ -28,3 +28,4 @@ Database: SQLite (or any Django-supported DB)
 
 
 ![image](https://github.com/user-attachments/assets/f0f9e683-2ba3-4de2-a173-ec6db1da7d68)
+![image](https://github.com/user-attachments/assets/a7f54dc3-6e39-4b28-8689-b8065c2088a7)
